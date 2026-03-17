@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; padding: 16px; }
+    .search-box { background: #f1f3f5; border-radius: 25px; padding: 12px 20px; border: none; width: 100%; font-size: 16px; }
+    .categorias-scroll { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding: 10px 0; }
+    .categorias-scroll::-webkit-scrollbar { display: none; }
+    .categoria-item { display: inline-block; padding: 8px 20px; margin-right: 10px; background: #f1f3f5; border-radius: 25px; font-size: 14px; color: #495057; text-decoration: none; }
+    .categoria-item.activa { background: #0d6efd; color: white; }
+    .producto-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #f0f0f0; }
+    .precio { font-size: 20px; font-weight: bold; color: #0d6efd; }
+    .badge-stock { background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    .btn-ver { background: #0d6efd; color: white; border: none; border-radius: 12px; padding: 10px 20px; font-size: 14px; text-decoration: none; display: inline-block; }
+    .search-results { position: absolute; background: white; width: 100%; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; max-height: 300px; overflow-y: auto; }
+</style>
+
+<div class="app-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 style="font-size: 28px; font-weight: bold; color: #0d6efd;">Stoky</h1>
+        <div style="background: #f1f3f5; padding: 8px 16px; border-radius: 25px; font-size: 14px;">
+            📍 CDMX
+        </div>
+    </div>
+
+    <!-- Buscador -->
+    <div class="mb-4" style="position: relative;">
+        <form action="{% url 'catalogo' %}" method="get">
+            <input type="text" 
+                   name="q" 
+                   class="search-box" 
+                   placeholder="Buscar medicamentos..."
+                   id="search-input"
+                   autocomplete="off">
+        </form>
+        <div id="search-results" class="search-results" style="display: none;"></div>
+    </div>
+
+    <!-- Categorías -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 style="font-size: 18px; font-weight: 600;">Categorías</h2>
+            <a href="{% url 'catalogo' %}" style="color: #0d6efd; text-decoration: none; font-size: 14px;">Ver todo</a>
+        </div>
+        <div class="categorias-scroll">
+            <a href="{% url 'catalogo' %}" class="categoria-item activa">Todos</a>
+            {% for cat in categorias %}
+            <a href="{% url 'catalogo' %}?categoria={{ cat.id }}" class="categoria-item">
+                {{ cat.nombre }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Productos Destacados -->
+    <div>
+        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Productos Destacados</h2>
+        
+        {% for producto in destacados %}
+        <div class="producto-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">{{ producto.nombre }}</h3>
+                    <p style="font-size: 13px; color: #6c757d; margin-bottom: 8px;">{{ producto.laboratorio|default:"Genérico" }}</p>
+                </div>
+                {% if producto.requiere_receta %}
+                <span style="background: #fff3cd; color: #856404; padding: 4px 10px; border-radius: 20px; font-size: 11px;">Receta</span>
+                {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="precio">${{ producto.precio }}</span>
+                    <span class="badge-stock ms-2">Stock: {{ producto.stock_actual }}</span>
+                </div>
+                <a href="{% url 'producto_detalle' producto.id %}" class="btn-ver">
+                    Ver
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <p style="text-align: center; color: #6c757d; padding: 40px 0;">No hay productos destacados</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+
+searchInput.addEventListener('input', function(e) {
+    const query = e.target.value;
+    if (query.length >= 2) {
+        fetch(`/api/buscar/?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.resultados.length > 0) {
+                    searchResults.innerHTML = data.resultados.map(p => `
+                        <a href="/producto/${p.id}/" style="display: block; padding: 12px 16px; text-decoration: none; color: #212529; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <strong>${p.nombre}</strong><br>
+                                    <small style="color: #6c757d;">${p.laboratorio}</small>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="color: #0d6efd; font-weight: bold;">$${p.precio}</span><br>
+                                    <small style="color: #6c757d;">Stock: ${p.stock}</small>
+                                </div>
+                            </div>
+                        </a>
+                    `).join('');
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.style.display = 'none';
+                }
+            });
+    } else {
+        searchResults.style.display = 'none';
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

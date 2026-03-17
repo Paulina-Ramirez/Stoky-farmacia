@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Disponibilidad{% endblock %}
+
+{% block content %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f8f9fa; }
+    .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; padding: 16px; }
+    
+    /* Mapa simulado */
+    .mapa-simulado {
+        height: 300px;
+        width: 100%;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        background: linear-gradient(145deg, #e3f2fd 0%, #bbdefb 100%);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #90caf9;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .mapa-grid {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
+        background-size: 30px 30px;
+    }
+    
+    .marcador-simulado {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background: #0d6efd;
+        border: 3px solid white;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+    }
+    
+    .marcador-simulado::after {
+        content: '📍';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: rotate(45deg) translate(-30%, -50%);
+        color: white;
+        font-size: 18px;
+    }
+    
+    .marcador-simulado:nth-child(1) { top: 30%; left: 40%; }
+    .marcador-simulado:nth-child(2) { top: 60%; left: 60%; }
+    .marcador-simulado:nth-child(3) { top: 45%; left: 25%; }
+    
+    @keyframes pulse {
+        0% { transform: rotate(-45deg) scale(1); }
+        50% { transform: rotate(-45deg) scale(1.1); }
+        100% { transform: rotate(-45deg) scale(1); }
+    }
+    
+    .info-mapa {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(255,255,255,0.9);
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-size: 12px;
+        color: #0d6efd;
+        font-weight: 500;
+        backdrop-filter: blur(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .sucursal-card {
+        background: white;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid #0d6efd;
+        transition: transform 0.2s;
+    }
+    
+    .sucursal-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .distancia {
+        background: #f8f9fa;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .stock-cantidad {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2e7d32;
+    }
+    
+    .btn-llamar {
+        background: #f8f9fa;
+        padding: 8px 16px;
+        border-radius: 25px;
+        text-decoration: none;
+        color: #0d6efd;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    
+    .btn-llamar:hover {
+        background: #e9ecef;
+    }
+</style>
+
+<div class="app-container">
+    <!-- Botón atrás -->
+    <div style="margin-bottom: 16px;">
+        <a href="javascript:history.back()" style="color: #212529; text-decoration: none; font-size: 18px; display: inline-block; padding: 8px 0;">
+            ← Volver
+        </a>
+    </div>
+
+    <!-- Título -->
+    <h1 style="font-size: 22px; margin-bottom: 4px;">Disponibilidad</h1>
+    <h2 style="font-size: 16px; color: #6c757d; margin-bottom: 20px;">{{ producto.nombre }}</h2>
+
+    <!-- Mapa Simulado (sin API) -->
+    <div class="mapa-simulado">
+        <div class="mapa-grid"></div>
+        <!-- Marcadores simulados -->
+        <div class="marcador-simulado" style="top: 30%; left: 40%;"></div>
+        <div class="marcador-simulado" style="top: 60%; left: 60%;"></div>
+        <div class="marcador-simulado" style="top: 45%; left: 25%;"></div>
+        <div class="info-mapa">
+            <span>📍 Vista de mapa (simulación)</span>
+        </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 20px; font-size: 12px; color: #6c757d;">
+        <span><span style="color: #0d6efd;">●</span> Sucursal con stock</span>
+        <span><span style="color: #dc3545;">●</span> Stock bajo</span>
+    </div>
+
+    <!-- Lista de sucursales -->
+    <h3 style="font-size: 16px; font-weight: 600; margin: 20px 0 12px;">
+        Sucursales Cercanas ({{ stocks|length }})
+    </h3>
+
+    {% for stock in stocks %}
+    <div class="sucursal-card">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+            <div>
+                <h4 style="font-size: 16px; font-weight: 600; margin: 0;">{{ stock.sucursal.nombre }}</h4>
+                {% if stock.cantidad < 20 %}
+                <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; margin-left: 8px;">Stock bajo</span>
+                {% endif %}
+            </div>
+            <span class="distancia">
+                {% if forloop.first %}1.2 km{% endif %}
+                {% if forloop.counter == 2 %}2.5 km{% endif %}
+                {% if forloop.counter == 3 %}3.1 km{% endif %}
+                {% if forloop.counter > 3 %}{{ forloop.counter|add:"1" }}.0 km{% endif %}
+            </span>
+        </div>
+        
+        <p style="font-size: 14px; color: #6c757d; margin-bottom: 12px;">
+            {{ stock.sucursal.direccion }}
+        </p>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span class="stock-cantidad">{{ stock.cantidad }}</span>
+                <span style="color: #6c757d;">unidades</span>
+                <span style="color: #28a745; font-size: 14px; margin-left: 8px;">
+                    {% if stock.cantidad > 0 %}✅ Disponible{% endif %}
+                </span>
+            </div>
+            {% if stock.sucursal.telefono %}
+            <a href="tel:{{ stock.sucursal.telefono }}" class="btn-llamar">
+                📞 Llamar
+            </a>
+            {% endif %}
+        </div>
+        
+        {% if stock.sucursal.horario %}
+        <p style="font-size: 13px; color: #6c757d; margin-top: 12px; margin-bottom: 0; padding-top: 12px; border-top: 1px dashed #f0f0f0;">
+            🕒 {{ stock.sucursal.horario }}
+        </p>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 16px;">
+        <p style="color: #6c757d; margin-bottom: 12px;">No hay stock disponible en otras sucursales</p>
+        <p style="color: #0d6efd; font-size: 14px;">📍 Solo disponible en esta sucursal</p>
+    </div>
+    {% endfor %}
+
+    <!-- Información adicional -->
+    <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 16px; font-size: 13px; color: #6c757d;">
+        <div style="display: flex; gap: 16px; justify-content: center;">
+            <span>🕒 Actualizado: hace 5 min</span>
+            <span>📍 {{ stocks|length }} sucursales</span>
+        </div>
+    </div>
+</div>
+
+<!-- Script para manejar interacciones básicas (opcional) -->
+<script>
+    // Efecto de hover en las tarjetas
+    document.querySelectorAll('.sucursal-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Simular clic en marcadores (opcional)
+    document.querySelectorAll('.marcador-simulado').forEach((marcador, index) => {
+        marcador.addEventListener('click', function() {
+            const sucursales = document.querySelectorAll('.sucursal-card');
+            if (sucursales[index]) {
+                sucursales[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sucursales[index].style.backgroundColor = '#f0f7ff';
+                setTimeout(() => {
+                    sucursales[index].style.backgroundColor = 'white';
+                }, 1000);
+            }
+        });
+    });
+</script>
+{% endblock %}

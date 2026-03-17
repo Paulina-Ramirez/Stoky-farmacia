@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Buscar{% endblock %}
+
+{% block content %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f8f9fa; }
+    .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; padding: 16px; }
+    .resultado-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #f0f0f0; border-left: 4px solid #0d6efd; }
+    .badge-disponible { background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    .precio-result { font-size: 18px; font-weight: bold; color: #0d6efd; }
+    .filtros-btn { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 25px; padding: 8px 16px; font-size: 14px; }
+    .filtros-panel { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+</style>
+
+<div class="app-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="javascript:history.back()" style="color: #212529; text-decoration: none; font-size: 18px;">← Atrás</a>
+        <button class="filtros-btn" onclick="toggleFiltros()">
+            🔍 Filtros
+        </button>
+    </div>
+    
+    <!-- Título y resultados -->
+    <h1 style="font-size: 24px; margin-bottom: 4px;">Buscar</h1>
+    <p style="color: #6c757d; margin-bottom: 16px;">{{ total_productos }} productos encontrados</p>
+    
+    {% if query %}
+    <p style="background: #e7f3ff; padding: 8px 16px; border-radius: 25px; margin-bottom: 16px;">
+        Búsqueda: "{{ query }}"
+    </p>
+    {% endif %}
+
+    <!-- Panel de filtros (oculto por defecto) -->
+    <div id="filtros-panel" class="filtros-panel" style="display: none;">
+        <form method="get">
+            {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Categoría</label>
+                <select name="categoria" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #dee2e6;">
+                    <option value="">Todas</option>
+                    {% for cat in categorias %}
+                    <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"i" %}selected{% endif %}>
+                        {{ cat.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Ordenar por</label>
+                <select name="orden" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #dee2e6;">
+                    <option value="">Relevancia</option>
+                    <option value="precio">Menor precio</option>
+                    <option value="-precio">Mayor precio</option>
+                    <option value="nombre">Nombre A-Z</option>
+                </select>
+            </div>
+            
+            <button type="submit" style="width: 100%; padding: 14px; background: #0d6efd; color: white; border: none; border-radius: 12px; font-size: 16px;">
+                Aplicar filtros
+            </button>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div>
+        {% for producto in productos %}
+        <a href="{% url 'producto_detalle' producto.id %}" style="text-decoration: none; color: inherit;">
+            <div class="resultado-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">{{ producto.nombre }}</h3>
+                        <p style="font-size: 13px; color: #6c757d; margin-bottom: 8px;">{{ producto.laboratorio|default:"Genérico" }}</p>
+                    </div>
+                    <span class="badge-disponible">
+                        {% if producto.stock_actual > 0 %}✅ Disponible{% else %}❌ Agotado{% endif %}
+                    </span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="precio-result">${{ producto.precio }}</span>
+                        <span style="color: #6c757d; font-size: 13px; margin-left: 8px;">Stock: {{ producto.stock_actual }}</span>
+                    </div>
+                    <span style="color: #0d6efd; font-size: 14px;">Ver →</span>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div style="text-align: center; padding: 60px 0;">
+            <p style="color: #6c757d; margin-bottom: 16px;">No se encontraron productos</p>
+            <a href="{% url 'catalogo' %}" style="color: #0d6efd; text-decoration: none;">Limpiar filtros</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div style="display: flex; justify-content: center; gap: 8px; margin-top: 24px;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}" 
+           style="padding: 8px 16px; background: #f8f9fa; border-radius: 12px; text-decoration: none; color: #0d6efd;">
+            ← Anterior
+        </a>
+        {% endif %}
+        
+        <span style="padding: 8px 16px;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}" 
+           style="padding: 8px 16px; background: #f8f9fa; border-radius: 12px; text-decoration: none; color: #0d6efd;">
+            Siguiente →
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleFiltros() {
+    const panel = document.getElementById('filtros-panel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
