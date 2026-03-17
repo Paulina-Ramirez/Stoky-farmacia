@@ -35,15 +35,23 @@ Aplicación web para consultar disponibilidad de productos en farmacias, con vis
    cd Stoky-farmacia
 
 2. **Crear y clonar repositorio**
-   # Windows
+   ```bash
+    -- Windows
     python -m venv venv
     venv\Scripts\activate
+
+   -- Mac / Linux
+   python3 -m venv venv
+   source venv/bin/activate
    
 4. **Instalar dependencias**
+   ```bash
    pip install -r requirements.txt
 
-5. **Configurar la base de datos**
+6. **Configurar la base de datos**
+   ```bash
    python manage.py migrate
 
-6. **Correr el servidor**
+8. **Correr el servidor**
+   ```bash
    python manage.py runserver
