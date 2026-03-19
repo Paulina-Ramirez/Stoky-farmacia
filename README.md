@@ -44,14 +44,19 @@ Aplicación web para consultar disponibilidad de productos en farmacias, con vis
    python3 -m venv venv
    source venv/bin/activate
    
-4. **Instalar dependencias**
+3. **Instalar dependencias**
    ```bash
    pip install -r requirements.txt
 
-6. **Configurar la base de datos**
+4. **Hacer migraciones **
    ```bash
+   python manage.py makemigrations
    python manage.py migrate
 
-8. **Correr el servidor**
+5. **Ejecutar script de datos de prueba**
+   ```bash
+   python crear_datos_prueba.py
+
+6. **Correr el servidor**
    ```bash
    python manage.py runserver
